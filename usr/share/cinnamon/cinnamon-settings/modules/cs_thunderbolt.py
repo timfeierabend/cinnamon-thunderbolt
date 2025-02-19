@@ -7,18 +7,24 @@ from xapp.GSettingsWidgets import *
 from gi.repository import *
 
 def build_info_row(key, value):
+    labelValue = Gtk.Label.new(value)
+    labelValue.set_selectable(True)
+    labelValue.set_line_wrap(True)
+    return build_info_row_widget(key, labelValue)
+
+def build_info_row_widget(key, widget):
     row = SettingsWidget()
     labelKey = Gtk.Label.new(key)
     labelKey.get_style_context().add_class("dim-label")
     row.pack_start(labelKey, False, False, 0)
-    labelValue = Gtk.Label.new(value)
-    labelValue.set_selectable(True)
-    labelValue.set_line_wrap(True)
-    row.pack_end(labelValue, False, False, 0)
+    row.pack_end(widget, False, False, 0)
     return row
 
 def build_listbox_row(key, value):
-    content = build_info_row(key, value)
+    if isinstance(value, Gtk.Widget):
+        content = build_info_row_widget(key, value)
+    else:
+        content = build_info_row(key, value)        
     row = Gtk.ListBoxRow(can_focus=False)
     row.add(content)
     return row
@@ -42,10 +48,7 @@ class BoltDevice:
         self.generation = proxy.get_cached_property('Generation').unpack()
         self.status = proxy.get_cached_property('Status').unpack()
         self.stored = proxy.get_cached_property('Stored').unpack()
-        linkspeed = proxy.get_cached_property('LinkSpeed').unpack()
-        speed = linkspeed['tx.speed']
-        lanes = linkspeed['tx.lanes']
-        self.bandwidth = f'{lanes * speed} Gb/s ({lanes} lanes @ {speed} Gb/s)'
+        self.linkspeed = proxy.get_cached_property('LinkSpeed').unpack()
 
         # Build the widgets for this bolt device
         self._init_widgets()
@@ -56,6 +59,10 @@ class BoltDevice:
     def _init_widgets(self):
         # Build the status label
         self.status_label = Gtk.Label.new()
+
+        # Build the bandwidth detail label
+        self.details_bandwidth = Gtk.Label.new()
+        self.details_bandwidth.set_selectable(True)
 
         # Build the Details/Authorize/Trust button box
         self._btn_auth = Gtk.Button.new_with_label(_("Authorize"))
@@ -71,17 +78,18 @@ class BoltDevice:
         self.buttons.set_layout(Gtk.ButtonBoxStyle.EXPAND)
 
         # Build the details revealer
-        self.revealer = Gtk.Revealer.new()
+        revealer = Gtk.Revealer.new()
         # This initialization is taken from SettingsRevealer class in python3-xapp
-        self.revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
-        self.revealer.set_transition_duration(150)
-        self.revealer.set_reveal_child(False)
+        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
+        revealer.set_transition_duration(150)
+        revealer.set_reveal_child(False)
+        self.details_revealer = revealer
 
         # Build the details, pack into the revealer
         list_box = Gtk.ListBox()
         list_box.set_selection_mode(Gtk.SelectionMode.NONE)
         list_box.add(build_listbox_row('Generation', format_generation(self.generation)))
-        list_box.add(build_listbox_row('Bandwidth', self.bandwidth))
+        list_box.add(build_listbox_row('Bandwidth', self.details_bandwidth))
         list_box.add(build_listbox_row('Type', self.type))
         list_box.add(build_listbox_row('UID', self.uid))
         self.details_box = list_box
@@ -92,8 +100,13 @@ class BoltDevice:
     def _refresh(self):
         # Refresh widgets based on current state
         text = _("Disconnected")
+        bandwidth = '-'
         if self.status in ("connected", "authorizing", "authorized"):
             text = _("Connected")
+            speed = self.linkspeed['tx.speed']
+            lanes = self.linkspeed['tx.lanes']
+            bandwidth = f"{lanes * speed} Gb/s ({lanes} lanes @ {speed} Gb/s)"
+
         if self.status == "authorized":
             text = text + " & " + _("Authorized")
 
@@ -102,9 +115,11 @@ class BoltDevice:
             self._btn_trust.set_label(_("Forget"))
         else:
             self._btn_trust.set_label(_("Trust"))
+
+        self.details_bandwidth.set_text(bandwidth)
         self.status_label.set_label(text)
 
-        if self.status == 'connected':
+        if self.status == "connected":
             self._btn_auth.set_sensitive(True)
             self._btn_trust.set_sensitive(False)
         else:
@@ -112,7 +127,7 @@ class BoltDevice:
             self._btn_trust.set_sensitive(True)
 
     def _on_btn_details_toggled(self, button):
-        self.revealer.set_reveal_child(button.get_active())
+        self.details_revealer.set_reveal_child(button.get_active())
 
     def _on_btn_auth_click(self, button):
         self._proxy.Authorize('(s)', 'auto')
@@ -131,6 +146,8 @@ class BoltDevice:
             self.stored = changed['Stored']
         if 'Status' in changed:
             self.status = changed['Status']
+        if 'LinkSpeed' in changed:
+            self.linkspeed = changed['LinkSpeed']
         self._refresh()
 
 class Module:
@@ -215,7 +232,7 @@ class Module:
         widget.pack_start(bolt_dev.status_label, False, False, 0)
         widget.pack_end(bolt_dev.buttons, False, False, 0)
         section.add_row(widget)
-        section.add_reveal_row(bolt_dev.details_box, revealer=bolt_dev.revealer)
+        section.add_reveal_row(bolt_dev.details_box, revealer=bolt_dev.details_revealer)
         section.show_all()
 
         # Add to bolt sections we're maintaining

@@ -1,4 +1,10 @@
-cinnamon-thunderbolt (0.0.1) unstable; urgency=medium
+cinnamon-thunderbolt (0.0.2) UNRELEASED; urgency=medium
+
+  * Fixed issue where Bandwidth was displayed for disconnected devices.
+
+ -- Timothy Feierabend <tim.feierabend@gmail.com>  Wed, 19 Feb 2025 06:42:00 -0600
+
+cinnamon-thunderbolt (0.0.1) UNRELEASED; urgency=medium
 
   * Initial release.
 
