@@ -6,6 +6,30 @@ from SettingsWidgets import SidePage
 from xapp.GSettingsWidgets import *
 from gi.repository import *
 
+def build_info_row(key, value):
+    row = SettingsWidget()
+    labelKey = Gtk.Label.new(key)
+    labelKey.get_style_context().add_class("dim-label")
+    row.pack_start(labelKey, False, False, 0)
+    labelValue = Gtk.Label.new(value)
+    labelValue.set_selectable(True)
+    labelValue.set_line_wrap(True)
+    row.pack_end(labelValue, False, False, 0)
+    return row
+
+def build_listbox_row(key, value):
+    content = build_info_row(key, value)
+    row = Gtk.ListBoxRow(can_focus=False)
+    row.add(content)
+    return row
+
+def format_generation(gen):
+    if gen in (1,2,3):
+        return f'Thunderbolt {gen}'
+    elif gen == 4:
+        return 'USB4'
+    raise ValueError("undefined thunderbolt generation")
+
 class BoltDevice:
     def __init__(self, proxy, trust_callback, forget_callback):
         self._proxy = proxy
@@ -53,6 +77,15 @@ class BoltDevice:
         self.revealer.set_transition_duration(150)
         self.revealer.set_reveal_child(False)
 
+        # Build the details, pack into the revealer
+        list_box = Gtk.ListBox()
+        list_box.set_selection_mode(Gtk.SelectionMode.NONE)
+        list_box.add(build_listbox_row('Generation', format_generation(self.generation)))
+        list_box.add(build_listbox_row('Bandwidth', self.bandwidth))
+        list_box.add(build_listbox_row('Type', self.type))
+        list_box.add(build_listbox_row('UID', self.uid))
+        self.details_box = list_box
+
         # Refresh the dyanmic widgets
         self._refresh()
 
@@ -99,30 +132,6 @@ class BoltDevice:
         if 'Status' in changed:
             self.status = changed['Status']
         self._refresh()
-
-def build_info_row(key, value):
-    row = SettingsWidget()
-    labelKey = Gtk.Label.new(key)
-    labelKey.get_style_context().add_class("dim-label")
-    row.pack_start(labelKey, False, False, 0)
-    labelValue = Gtk.Label.new(value)
-    labelValue.set_selectable(True)
-    labelValue.set_line_wrap(True)
-    row.pack_end(labelValue, False, False, 0)
-    return row
-
-def build_listbox_row(key, value):
-    content = build_info_row(key, value)
-    row = Gtk.ListBoxRow(can_focus=False)
-    row.add(content)
-    return row
-
-def format_generation(gen):
-    if gen in (1,2,3):
-        return f'Thunderbolt {gen}'
-    elif gen == 4:
-        return 'USB4'
-    raise ValueError("undefined thunderbolt generation")
 
 class Module:
     name = "thunderbolt"
@@ -206,14 +215,7 @@ class Module:
         widget.pack_start(bolt_dev.status_label, False, False, 0)
         widget.pack_end(bolt_dev.buttons, False, False, 0)
         section.add_row(widget)
-        # Build the details, pack into this bolt_dev's revealer
-        list_box = Gtk.ListBox()
-        list_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        list_box.add(build_listbox_row('Generation', format_generation(bolt_dev.generation)))
-        list_box.add(build_listbox_row('Bandwidth', bolt_dev.bandwidth))
-        list_box.add(build_listbox_row('Type', bolt_dev.type))
-        list_box.add(build_listbox_row('UID', bolt_dev.uid))
-        section.add_reveal_row(list_box, revealer=bolt_dev.revealer)
+        section.add_reveal_row(bolt_dev.details_box, revealer=bolt_dev.revealer)
         section.show_all()
 
         # Add to bolt sections we're maintaining
