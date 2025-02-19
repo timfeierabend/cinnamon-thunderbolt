@@ -1,0 +1,10 @@
+[Desktop Entry]
+Icon=csd-thunderbolt
+Exec=cinnamon-settings thunderbolt
+Type=Application
+Terminal=false
+OnlyShowIn=X-Cinnamon;Cinnamon;
+Categories=System;
+Name=Thunderbolt™
+Comment=Manage Thunderbolt™ and USB4 devices
+Keywords=thunderbolt;usb;docking;hub;dock;

@@ -1,0 +1,12 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files:
+ *
+Copyright: 2025 Timothy Feierabend <tim.feierabend@gmail.com>
+License: GPL-2+
+
+Files:
+ usr/share/icons/hicolor/scalable/apps/csd-thunderbolt.svg
+Copyright: 2019 Papirus Development Team
+License: GPL-3+
+Comment: Original filename is preferences-desktop-thunderbolt.svg

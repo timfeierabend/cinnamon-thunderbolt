@@ -1,0 +1,17 @@
+Source: cinnamon-thunderbolt
+Maintainer: Timothy Feierabend <tim.feierabend@gmail.com>
+Build-Depends: debhelper-compat (=13)
+Standards-Version: 4.6.2
+Section: admin
+
+Package: cinnamon-thunderbolt
+Priority: optional
+Architecture: all
+Depends: 
+ python3,
+ python3-gi,
+ python3-xapp,
+ cinnamon-common,
+ bolt
+Description: thunderbolt settings module for cinnamon
+ Graphically manage Thunderbolt devices from within Cinnamon Settings.
